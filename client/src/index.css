@@ -1,0 +1,80 @@
+:root {
+  /* Colors */
+  --bg-dark: #F8F9FA; /* Using this as the main light background */
+  --surface-card: #FFFFFF;
+  --surface-elevated: #E9ECEF;
+  --neutral-gray: #6C757D;
+  --primary-blue: #0066CC;
+  --primary-blue-dark: #004C99;
+  --bg-light: #FFFFFF;
+
+  --bg-card: var(--surface-card);
+  --bg-input: #FFFFFF;
+  --primary-orange: #1A1A1A; /* Using dark color for primary accents like buttons based on design */
+  --primary-orange-hover: #333333;
+  --secondary-cyan: #0066CC;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6C757D;
+  --border-color: #DEE2E6;
+
+  /* Typography */
+  --font-headline: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'JetBrains Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+button {
+  font-family: var(--font-headline);
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+a {
+  color: var(--primary-orange);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-orange-hover);
+}
+
+/* Custom Scrollbar for a sleek look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark); 
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color); 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary); 
+}

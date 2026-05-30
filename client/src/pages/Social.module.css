@@ -1,0 +1,75 @@
+.pageContainer {
+  padding: 1.5rem 2rem 4rem 2rem;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  margin-top: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0 1.5rem 0;
+  background-color: transparent;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.headerRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.navTabs {
+  display: flex;
+  flex-direction: row;
+  gap: 0.6rem;
+  background-color: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.tabBtn {
+  background-color: #E9ECEF;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tabBtn:hover, .tabBtn:focus {
+  background-color: #0066CC;
+  color: #FFFFFF;
+  outline: none;
+}
+
+.activeTab {
+  background-color: #0066CC;
+  color: #FFFFFF;
+}
+
+.activeTab:hover {
+  background-color: #0066CC;
+  color: #FFFFFF;
+}
+
+.contentArea {
+  min-height: 600px;
+}

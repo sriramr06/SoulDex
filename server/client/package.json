@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "server": "file:.."
+  },
+  "devDependencies": {
+    "vite": "^5.4.21"
+  }
+}

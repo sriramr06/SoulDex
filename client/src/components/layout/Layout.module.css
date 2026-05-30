@@ -1,0 +1,23 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #F4F5F7;
+}
+
+.bodyWrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  /* padding: 2rem; */ /* Padding is managed by pageContainer in Characters.module.css */
+}
+
+/* We don't need these anymore since Sidebar is flex, but we'll leave it in case */
+.mainContent.sidebarClosed {
+}

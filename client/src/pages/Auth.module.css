@@ -1,0 +1,131 @@
+.authPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--bg-dark);
+  padding: 1rem;
+}
+
+.authCard {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.authCard h1 {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.authForm label {
+  font-family: var(--font-label);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: -0.5rem; /* tighten spacing between label and input */
+}
+
+.authForm input {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 1rem;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.authForm input:focus {
+  border-color: var(--primary-orange);
+}
+
+.authForm input::placeholder {
+  color: #555;
+}
+
+.authForm button {
+  background-color: var(--primary-orange);
+  color: var(--bg-dark);
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 1rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 1rem;
+}
+
+.authForm button:hover:not(:disabled) {
+  background-color: var(--primary-orange-hover);
+}
+
+.authForm button:disabled {
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.authFooter {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.authLink {
+  background: none;
+  border: none;
+  color: var(--secondary-cyan);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0;
+  margin-left: 0.5rem;
+  text-transform: none;
+  letter-spacing: normal;
+  text-decoration: underline;
+}
+
+.authLink:hover {
+  color: #33ccff;
+  background: none;
+}
+
+.authError {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.authSuccess {
+  color: #00cc66;
+  background-color: rgba(0, 204, 102, 0.1);
+  border: 1px solid rgba(0, 204, 102, 0.3);
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}

@@ -1,0 +1,106 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 380px;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background-color: #F3F4F6;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(26, 26, 26, 0.85);
+  color: white;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.65rem;
+  font-family: var(--font-label);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.badgeQuincy {
+  background-color: rgba(0, 102, 204, 0.85); /* Primary blue */
+}
+
+.badgeHollow {
+  background-color: rgba(220, 38, 38, 0.85); /* Red/Crimson */
+}
+
+.badgeShinigami {
+  background-color: rgba(75, 85, 99, 0.85); /* Dark gray/black for Shinigami */
+}
+
+.badgeFullbringer {
+  background-color: rgba(16, 185, 129, 0.85); /* Green for Fullbringer */
+}
+
+.badgeVisored {
+  background-color: rgba(139, 92, 246, 0.85); /* Purple for Visored */
+}
+
+.badgeHuman {
+  background-color: rgba(245, 158, 11, 0.85); /* Orange/Amber for Human */
+}
+
+.content {
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 700;
+}
+
+.descriptionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.verticalBar {
+  width: 2px;
+  height: 1rem;
+  background-color: #CBD5E1;
+}
+
+.description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}

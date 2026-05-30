@@ -1,0 +1,137 @@
+.pageContainer {
+  padding: 0 3rem 4rem 3rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.headerRow {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: #F4F5F7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  margin-top: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0 1.5rem 0;
+}
+
+.titleAndFilters {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+
+
+.filterButtons {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  background-color: #E9ECEF;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filterBtn:hover, .filterBtn:focus {
+  background-color: #0066CC;
+  color: #FFFFFF;
+  outline: none;
+}
+
+.filterBtn.active {
+  background-color: #0066CC;
+  color: #FFFFFF;
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  background-color: #FFFFFF;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  min-width: 280px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.searchWrapper:focus-within {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.searchIcon {
+  color: var(--text-secondary);
+  margin-right: 0.8rem;
+}
+
+.searchInput {
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 1400px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-secondary);
+  font-family: var(--font-label);
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #DC2626;
+  background: #FEE2E2;
+  border-radius: 4px;
+}
