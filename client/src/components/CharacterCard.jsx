@@ -1,13 +1,16 @@
-
 import styles from './CharacterCard.module.css';
 
-const CharacterCard = ({ character }) => {
+const CharacterCard = ({ character, action, ...props }) => {
   // Determine badge style based on race or group
   const raceLower = (character.race || '').toLowerCase();
   let badgeClass = styles.badge;
   if (raceLower.includes('quincy'))
     badgeClass = `${styles.badge} ${styles.badgeQuincy}`;
-  else if (raceLower.includes('hollow') || raceLower.includes('arrancar') || raceLower.includes('espada'))
+  else if (
+    raceLower.includes('hollow') ||
+    raceLower.includes('arrancar') ||
+    raceLower.includes('espada')
+  )
     badgeClass = `${styles.badge} ${styles.badgeHollow}`;
   else if (raceLower.includes('shinigami'))
     badgeClass = `${styles.badge} ${styles.badgeShinigami}`;
@@ -29,8 +32,17 @@ const CharacterCard = ({ character }) => {
     <div
       className={styles.card}
       aria-label={`View ${character.name} details`}
+      {...props}
     >
       <div className={styles.imageContainer}>
+        {action && (
+          <div
+            className={styles.actionContainer}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {action}
+          </div>
+        )}
         <img
           src={
             character.img ||

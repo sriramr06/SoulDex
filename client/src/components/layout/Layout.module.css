@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #F4F5F7;
+  background-color: var(--bg-primary);
 }
 
 .bodyWrapper {
@@ -15,9 +15,30 @@
   flex: 1;
   overflow-y: auto;
   position: relative;
-  /* padding: 2rem; */ /* Padding is managed by pageContainer in Characters.module.css */
+  /* padding: 2rem; */
+  /* Padding is managed by pageContainer in Characters.module.css */
 }
 
 /* We don't need these anymore since Sidebar is flex, but we'll leave it in case */
-.mainContent.sidebarClosed {
+.mainContent.sidebarClosed {}
+
+.sidebarBackdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebarBackdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 900;
+  }
+
+  .sidebarBackdrop.open {
+    display: block;
+  }
 }

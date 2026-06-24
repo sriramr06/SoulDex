@@ -1,41 +1,32 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const connectDB = require('./config/database');
-const { ALLOWED_ORIGINS } = require('./config/env');
-const { notFound, errorHandler } = require('./middlewares/errorHandler');
-
 const http = require('http');
-const { Server } = require('socket.io');
 const mongoose = require('mongoose');
+const { Server } = require('socket.io');
+const connectDB = require('./config/database');
+const app = require('./app');
+const { ALLOWED_ORIGINS } = require('./config/env');
+const { sanitizeText } = require('./utils/sanitizer');
 const Message = require('./models/Message');
-const User = require('./models/User');
-
-const app = express();
-
-app.disable('x-powered-by');
-app.set('trust proxy', 1);
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again later.',
-});
-
-app.use(helmet());
-app.use(cors({ origin: ALLOWED_ORIGINS ? ALLOWED_ORIGINS.split(',') : '*' }));
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(limiter);
+const jwt = require('jsonwebtoken');
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS ? ALLOWED_ORIGINS.split(',') : '*',
+    origin: ALLOWED_ORIGINS
+      ? ALLOWED_ORIGINS.split(',')
+      : process.env.NODE_ENV === 'production'
+        ? false
+        : (origin, callback) => {
+            if (!origin) {
+              callback(null, true);
+              return;
+            }
+            const allowedLocalhost = /(?:localhost|127\.0\.0\.1|\[::1\])/i.test(
+              origin,
+            );
+            callback(null, allowedLocalhost);
+          },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
@@ -51,10 +42,7 @@ io.use((socket, next) => {
   }
 
   try {
-    const decoded = require('jsonwebtoken').verify(
-      token,
-      process.env.JWT_SECRET,
-    );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = {
       userId: decoded.userId,
       email: decoded.email,
@@ -62,57 +50,67 @@ io.use((socket, next) => {
     };
     next();
   } catch (error) {
-    console.error('Socket auth error:', error.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Socket auth error:', error.message);
+    }
     next(new Error('Authentication error: invalid token'));
   }
 });
 
+// Track online users globally
+global.onlineUsers = new Map();
+
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id, 'user:', socket.user?.userId);
+  const userId = socket.user.userId;
+
+  // Join personal room for cross-tab notifications
+  socket.join(userId);
+
+  // Add user to online tracking
+  global.onlineUsers.set(userId, socket.id);
+  
+  // Broadcast status to all connected clients
+  io.emit('userStatusChange', { userId, status: 'online' });
+  
+  // Send current online users to the newly connected client
+  socket.emit('onlineUsers', Array.from(global.onlineUsers.keys()));
 
   socket.on('joinRoom', ({ targetUserId }) => {
     socket.rooms.forEach((room) => {
-      if (room !== socket.id) socket.leave(room);
+      if (room !== socket.id && room !== userId) socket.leave(room);
     });
 
-    const userId = socket.user.userId;
     if (!targetUserId) {
       socket.join('global');
-      console.log(`User ${userId} joined global chat`);
-      return;
     }
-
-    if (
-      !mongoose.Types.ObjectId.isValid(targetUserId) ||
-      targetUserId === userId
-    ) {
-      return;
-    }
-
-    const room = [userId, targetUserId].sort().join('_');
-    socket.join(room);
-    console.log(`User ${userId} joined room ${room}`);
   });
 
-  socket.on('sendMessage', async (messageData) => {
+  socket.on('sendMessage', async (messageData, callback) => {
     try {
-      const { recipientId, text } = messageData;
+      const { recipientId, text, imageUrl } = messageData;
       const senderId = socket.user.userId;
 
-      if (!text || typeof text !== 'string' || !text.trim()) {
+      if ((!text || typeof text !== 'string' || !text.trim()) && !imageUrl) {
+        if (typeof callback === 'function') {
+          callback({ success: false, error: 'Message cannot be empty.' });
+        }
         return;
       }
 
       const recipient =
         recipientId && recipientId !== null ? recipientId : null;
       if (recipient && !mongoose.Types.ObjectId.isValid(recipient)) {
+        if (typeof callback === 'function') {
+          callback({ success: false, error: 'Invalid recipient.' });
+        }
         return;
       }
 
       const newMessage = await Message.create({
         sender: senderId,
         recipient,
-        text: text.trim(),
+        text: text ? sanitizeText(text) : '',
+        imageUrl: imageUrl || '',
       });
 
       const populatedMessage = await Message.findById(newMessage._id).populate(
@@ -123,11 +121,40 @@ io.on('connection', (socket) => {
       if (!recipient) {
         io.to('global').emit('receiveMessage', populatedMessage);
       } else {
-        const room = [senderId, recipient].sort().join('_');
-        io.to(room).emit('receiveMessage', populatedMessage);
+        io.to(senderId).to(recipient).emit('receiveMessage', populatedMessage);
+      }
+
+      if (typeof callback === 'function') {
+        callback({ success: true });
       }
     } catch (error) {
-      console.error('Socket message save error:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Socket message save error:', error);
+      }
+      if (typeof callback === 'function') {
+        callback({
+          success: false,
+          error: 'Unable to send message. Please try again.',
+        });
+      }
+    }
+  });
+
+  socket.on('markAsRead', async ({ senderId }) => {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(senderId)) return;
+      
+      const currentUserId = socket.user.userId;
+      
+      await Message.updateMany(
+        { sender: senderId, recipient: currentUserId, read: false },
+        { $set: { read: true } }
+      );
+      
+      // Notify the sender that their messages were read
+      io.to(senderId).emit('messagesRead', { recipientId: currentUserId });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
     }
   });
 
@@ -150,35 +177,16 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const room = [senderId, recipientId].sort().join('_');
-    socket.to(room).emit('userTyping', { senderId, isTyping: isTypingActive });
+    socket.to(recipientId).emit('userTyping', { senderId, isTyping: isTypingActive });
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    global.onlineUsers.delete(userId);
+    io.emit('userStatusChange', { userId, status: 'offline' });
   });
 });
 
 app.set('io', io);
-
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
-
-const userRoutes = require('./routes/userRoutes');
-app.use('/api', userRoutes);
-
-const characterRoutes = require('./routes/characterRoutes');
-app.use('/api/characters', characterRoutes);
-
-const postRoutes = require('./routes/postRoutes');
-app.use('/api/posts', postRoutes);
-
-const messageRoutes = require('./routes/messageRoutes');
-app.use('/api/messages', messageRoutes);
-
-app.use(notFound);
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 let serverInstance;
@@ -186,22 +194,30 @@ let serverInstance;
 const startServer = async () => {
   await connectDB();
   serverInstance = server.listen(PORT, () => {
-    console.log(`Server listening on http://localhost:${PORT}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Server listening on http://localhost:${PORT}`);
+    }
   });
 };
 
 startServer().catch((error) => {
-  console.error('Server failed to start:', error);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Server failed to start:', error);
+  }
   process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Uncaught exception:', error);
+  }
   process.exit(1);
 });
 
 process.on('unhandledRejection', (error) => {
-  console.error('Unhandled promise rejection:', error);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Unhandled promise rejection:', error);
+  }
   if (serverInstance) {
     serverInstance.close(() => process.exit(1));
   } else {

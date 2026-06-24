@@ -58,10 +58,40 @@ const userSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    // Refresh tokens for silent authentication (simple implementation)
+    refreshTokens: [
+      {
+        type: String,
+      },
+    ],
+    // Email verification
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+    emailVerificationExpiry: {
+      type: Date,
+      default: null,
+    },
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+    passwordResetExpiry: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   },
 );
+
+// Indexes for improved query performance
+userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', userSchema);

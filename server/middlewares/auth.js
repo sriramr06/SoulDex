@@ -23,13 +23,17 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('JWT Verification Error:', error.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('JWT Verification Error:', error.message);
+      }
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token provided' });
+    return res
+      .status(401)
+      .json({ message: 'Not authorized, no token provided' });
   }
 };
 
@@ -37,7 +41,9 @@ const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
-    res.status(403).json({ message: 'Access denied, administrator role required' });
+    res
+      .status(403)
+      .json({ message: 'Access denied, administrator role required' });
   }
 };
 

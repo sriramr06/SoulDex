@@ -87,6 +87,7 @@ const characterSchema = new mongoose.Schema(
 
     isOriginalCharacter: { type: Boolean, default: false },
     createdBy: { type: String, default: 'System' },
+    creatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
     // Social
     likes: [
@@ -122,11 +123,22 @@ function generateSlug(name) {
     .replace(/^-+|-+$/g, '');
 }
 
-characterSchema.pre('save', async function (next) {
-  if (this.isModified('name') || !this.slug) {
-    let baseSlug = generateSlug(
-      this.name || this.englishName || this.romajiName,
-    );
+characterSchema.pre('validate', async function () {
+  // If the user provided a slug manually, we want to use it, but make sure it's unique.
+  // If no slug is provided, generate one from the name.
+  let baseSlug = this.slug
+    ? generateSlug(this.slug)
+    : generateSlug(
+        this.name || this.englishName || this.romajiName || 'character',
+      );
+
+  // Always regenerate if the document is new or the slug/name was modified
+  if (
+    this.isNew ||
+    this.isModified('name') ||
+    this.isModified('slug') ||
+    !this.slug
+  ) {
     let newSlug = baseSlug;
     let counter = 1;
 
@@ -140,7 +152,23 @@ characterSchema.pre('save', async function (next) {
     }
     this.slug = newSlug;
   }
-  next();
+
+  // async function returns a promise; no explicit next() call required
 });
+
+// Indexes for improved query performance
+characterSchema.index({
+  name: 'text',
+  romajiName: 'text',
+  englishName: 'text',
+  description: 'text',
+});
+characterSchema.index({ 'organization.group': 1 });
+characterSchema.index({ 'organization.rank': 1 });
+characterSchema.index({ 'organization.division': 1 });
+characterSchema.index({ race: 1 });
+characterSchema.index({ creatorId: 1 });
+characterSchema.index({ isOriginalCharacter: 1 });
+characterSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Character', characterSchema);

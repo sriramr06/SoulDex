@@ -1,6 +1,8 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const cloudinary = require('../config/cloudinary');
+const { sanitizeText } = require('../utils/sanitizer');
 
 const createPost = async (req, res) => {
   try {
@@ -20,7 +22,7 @@ const createPost = async (req, res) => {
     const newPost = await Post.create({
       author: req.user.userId,
       imageUrl,
-      caption,
+      caption: sanitizeText(caption),
     });
 
     const populatedPost = await Post.findById(newPost._id)
@@ -29,7 +31,9 @@ const createPost = async (req, res) => {
 
     res.status(201).json(populatedPost);
   } catch (error) {
-    console.error(error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -52,7 +56,9 @@ const getFeed = async (req, res) => {
 
     res.json(posts);
   } catch (error) {
-    console.error(error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -73,7 +79,9 @@ const getUserPosts = async (req, res) => {
 
     res.json(posts);
   } catch (error) {
-    console.error(error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -101,12 +109,24 @@ const toggleLike = async (req, res) => {
     }
 
     await post.save();
+
+    if (!hasLiked && post.author.toString() !== userId) {
+      await Notification.create({
+        recipient: post.author,
+        sender: userId,
+        type: 'LIKE_POST',
+        relatedId: post._id,
+        relatedModel: 'Post',
+      });
+    }
     res.json({
       message: hasLiked ? 'Post unliked' : 'Post liked',
       likes: post.likes,
     });
   } catch (error) {
-    console.error(error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -133,10 +153,67 @@ const addComment = async (req, res) => {
 
     const newComment = {
       user: userId,
-      text: text.trim(),
+      text: sanitizeText(text),
     };
 
     post.comments.push(newComment);
+    await post.save();
+
+    if (post.author.toString() !== userId) {
+      await Notification.create({
+        recipient: post.author,
+        sender: userId,
+        type: 'COMMENT_POST',
+        relatedId: post._id,
+        relatedModel: 'Post',
+        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+      });
+    }
+
+    const populatedPost = await Post.findById(postId)
+      .populate('author', 'displayName username profilePicture race')
+      .populate('comments.user', 'displayName username profilePicture');
+
+    res.json(populatedPost);
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const deleteComment = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const { postId, commentId } = req.params;
+    const userId = req.user.userId;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(postId) ||
+      !mongoose.Types.ObjectId.isValid(commentId)
+    ) {
+      return res.status(400).json({ message: 'Invalid post or comment ID' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    const isCommentOwner = comment.user.toString() === userId;
+    const isPostOwner = post.author.toString() === userId;
+
+    if (!isCommentOwner && !isPostOwner) {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
+    }
+
+    comment.remove();
     await post.save();
 
     const populatedPost = await Post.findById(postId)
@@ -145,7 +222,74 @@ const addComment = async (req, res) => {
 
     res.json(populatedPost);
   } catch (error) {
-    console.error(error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const deletePost = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const { postId } = req.params;
+    const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: 'Invalid post ID' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this post' });
+    }
+
+    await post.remove();
+    res.json({ message: 'Post deleted successfully', postId });
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const updatePost = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const { postId } = req.params;
+    const { caption } = req.body;
+    const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: 'Invalid post ID' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to update this post' });
+    }
+
+    post.caption = sanitizeText(caption);
+    await post.save();
+
+    const populatedPost = await Post.findById(postId)
+      .populate('author', 'displayName username profilePicture race')
+      .populate('comments.user', 'displayName username profilePicture');
+
+    res.json(populatedPost);
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -156,4 +300,7 @@ module.exports = {
   getUserPosts,
   toggleLike,
   addComment,
+  deleteComment,
+  deletePost,
+  updatePost,
 };

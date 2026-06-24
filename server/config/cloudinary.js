@@ -6,9 +6,11 @@ const {
 } = require('./env');
 
 if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-  console.warn(
-    'Cloudinary credentials are not fully configured. Image uploads will fail until CLOUDINARY_* values are set.'
-  );
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      'Cloudinary credentials are not fully configured. Image uploads will fail until CLOUDINARY_* values are set.',
+    );
+  }
 }
 
 cloudinary.config({
@@ -24,7 +26,7 @@ cloudinary.uploadStream = (fileBuffer, folder) => {
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
-      }
+      },
     );
     stream.end(fileBuffer);
   });

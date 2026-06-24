@@ -34,6 +34,20 @@ export const addComment = (postId, text) => {
   });
 };
 
+export const deleteComment = (postId, commentId) => {
+  return api.delete(
+    `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+  );
+};
+
+export const deletePost = (postId) => {
+  return api.delete(`/api/posts/${encodeURIComponent(postId)}`);
+};
+
+export const updatePost = (postId, data) => {
+  return api.put(`/api/posts/${encodeURIComponent(postId)}`, data);
+};
+
 // Messages
 export const getGlobalMessages = () => {
   return api.get('/api/messages/global');
@@ -41,4 +55,22 @@ export const getGlobalMessages = () => {
 
 export const getConversation = (userId) => {
   return api.get(`/api/messages/${encodeURIComponent(userId)}`);
+};
+
+export const uploadMessageImage = (formData) => {
+  return api.post('/api/messages/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+export const getUnreadCounts = () => {
+  return api.get('/api/messages/unread');
+};
+
+export const getLastMessagePreviews = () => {
+  return api.get('/api/messages/previews');
+};
+
+export const deleteMessage = (messageId) => {
+  return api.delete(`/api/messages/${encodeURIComponent(messageId)}`);
 };

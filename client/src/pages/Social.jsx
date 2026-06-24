@@ -1,60 +1,44 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { FiGlobe, FiSearch, FiMessageCircle, FiPlus } from 'react-icons/fi';
+import { FiGlobe, FiSearch, FiMessageCircle } from 'react-icons/fi';
 import FeedTab from '../components/social/FeedTab';
-import DiscoverTab from '../components/social/DiscoverTab';
 import ChatTab from '../components/social/ChatTab';
 import styles from './Social.module.css';
-import discoverStyles from '../components/social/DiscoverTab.module.css';
-import feedStyles from '../components/social/FeedTab.module.css';
 
 const Social = () => {
-  const [activeTab, setActiveTab] = useState('feed');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'explore');
   const [discoverQuery, setDiscoverQuery] = useState('');
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+
 
   return (
     <Layout>
       <div className={styles.pageContainer}>
-        <div className={styles.header}>
+        <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Social Hub</h1>
-          <div className={styles.navTabs}>
-            <button 
-              className={`${styles.tabBtn} ${activeTab === 'feed' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('feed')}
-            >
-              <FiGlobe /> Feed
-            </button>
-            <button 
-              className={`${styles.tabBtn} ${activeTab === 'discover' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('discover')}
-            >
-              <FiSearch /> Discover
-            </button>
-            <button 
-              className={`${styles.tabBtn} ${activeTab === 'chat' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('chat')}
-            >
-              <FiMessageCircle /> Chat
-            </button>
-          </div>
-
-          <div className={styles.headerRight}>
-            {activeTab === 'feed' && (
-              <button 
-                className={feedStyles.createPostBtn} 
-                style={{ margin: 0 }} 
-                onClick={() => setIsPostModalOpen(true)}
+          <div className={styles.navTabs} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                className={`${styles.tabBtn} ${activeTab === 'explore' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('explore')}
               >
-                <FiPlus /> New Post
+                <FiGlobe /> Explore
               </button>
-            )}
-            {activeTab === 'discover' && (
-              <div className={discoverStyles.searchBar} style={{ margin: 0, padding: '0.5rem 1rem' }}>
-                <FiSearch className={discoverStyles.searchIcon} />
+              <button
+                className={`${styles.tabBtn} ${activeTab === 'chat' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('chat')}
+              >
+                <FiMessageCircle /> Chat
+              </button>
+            </div>
+            
+            {activeTab !== 'chat' && (
+              <div className={styles.searchBar} style={{ margin: 0 }}>
+                <FiSearch className={styles.searchIcon} />
                 <input
                   type="text"
-                  className={discoverStyles.searchInput}
+                  className={styles.searchInput}
                   placeholder="Search users..."
                   value={discoverQuery}
                   onChange={(e) => setDiscoverQuery(e.target.value)}
@@ -65,9 +49,14 @@ const Social = () => {
         </div>
 
         <div className={styles.contentArea}>
-          {activeTab === 'feed' && <FeedTab isModalOpen={isPostModalOpen} setIsModalOpen={setIsPostModalOpen} />}
-          {activeTab === 'discover' && <DiscoverTab query={discoverQuery} setQuery={setDiscoverQuery} />}
-          {activeTab === 'chat' && <ChatTab />}
+          {activeTab === 'explore' && (
+            <FeedTab
+              isModalOpen={false}
+              setIsModalOpen={() => {}}
+              query={discoverQuery}
+            />
+          )}
+          {activeTab === 'chat' && <ChatTab initialContact={location.state?.userId} />}
         </div>
       </div>
     </Layout>

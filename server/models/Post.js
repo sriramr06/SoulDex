@@ -42,7 +42,9 @@ const postSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
-
+// Indexes for improved query performance
+postSchema.index({ author: 1 });
+postSchema.index({ createdAt: -1 });
 module.exports = mongoose.model('Post', postSchema);

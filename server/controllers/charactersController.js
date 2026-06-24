@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Character = require('../models/Character');
+const Notification = require('../models/Notification');
+const { sanitizeText, sanitizeUrl } = require('../utils/sanitizer');
 
 const safeJsonParse = (str, fallback) => {
   if (typeof str === 'string') {
@@ -123,8 +125,14 @@ const getCharacters = async (req, res) => {
       }
     }
 
+    // Support sorting via query param: 'name' | 'newest' | 'popular'
+    const sortParam = req.query.sort || 'name';
+    let sortObj = { name: 1 };
+    if (sortParam === 'newest') sortObj = { createdAt: -1 };
+    else if (sortParam === 'popular') sortObj = { likeCount: -1 };
+
     const [characters, totalCount] = await Promise.all([
-      Character.find(query).sort({ name: 1 }).skip(skip).limit(limit),
+      Character.find(query).sort(sortObj).skip(skip).limit(limit),
       Character.countDocuments(query),
     ]);
 
@@ -141,7 +149,9 @@ const getCharacters = async (req, res) => {
       characters,
     });
   } catch (error) {
-    console.error('getCharacters error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('getCharacters error:', error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -161,7 +171,32 @@ const getCharactersById = async (req, res) => {
     }
     res.json({ success: true, character });
   } catch (error) {
-    console.error('getCharactersById error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('getCharactersById error:', error);
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+//@desc     Get user created characters
+//@route    GET /api/characters/user/:userId
+//@access   Public
+const getUserCharacters = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
+    }
+
+    const characters = await Character.find({
+      creatorId: req.params.userId,
+      isOriginalCharacter: true,
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, characters });
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('getUserCharacters error:', error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -194,6 +229,17 @@ const likeCharacter = async (req, res) => {
     character.likeCount = character.likes.length;
     await character.save();
 
+    // Create Notification if not the owner
+    if (!hasLiked && character.creatorId && character.creatorId.toString() !== userId) {
+      await Notification.create({
+        recipient: character.creatorId,
+        sender: userId,
+        type: 'LIKE_CHARACTER',
+        relatedId: character._id,
+        relatedModel: 'Character',
+      });
+    }
+
     // Emit socket update
     const io = req.app.get('io');
     if (io) {
@@ -204,15 +250,15 @@ const likeCharacter = async (req, res) => {
       });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        likes: character.likes,
-        likeCount: character.likeCount,
-      });
+    res.status(200).json({
+      success: true,
+      likes: character.likes,
+      likeCount: character.likeCount,
+    });
   } catch (error) {
-    console.error('likeCharacter error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('likeCharacter error:', error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -249,6 +295,18 @@ const commentCharacter = async (req, res) => {
     character.comments.push(newComment);
     await character.save();
 
+    // Create Notification if not the owner
+    if (character.creatorId && character.creatorId.toString() !== userId) {
+      await Notification.create({
+        recipient: character.creatorId,
+        sender: userId,
+        type: 'COMMENT_CHARACTER',
+        relatedId: character._id,
+        relatedModel: 'Character',
+        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+      });
+    }
+
     // Emit socket update
     const io = req.app.get('io');
     if (io) {
@@ -261,7 +319,9 @@ const commentCharacter = async (req, res) => {
 
     res.status(201).json({ success: true, comments: character.comments });
   } catch (error) {
-    console.error('commentCharacter error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('commentCharacter error:', error);
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -301,15 +361,33 @@ const createCharacter = async (req, res) => {
     }
 
     // Slug uniqueness is now handled by the Character model pre‑save hook.
+    // However, if we receive a slug from the frontend we should pass it.
+    const customSlug =
+      req.body.slug && req.body.slug.trim() !== ''
+        ? req.body.slug.trim()
+        : undefined;
 
     let imgUrl = undefined;
-    if (req.file) {
+    let detailsImgUrl = undefined;
+
+    if (req.files) {
       const cloudinary = require('../config/cloudinary');
-      const uploadRes = await cloudinary.uploadStream(
-        req.file.buffer,
-        'souldex/characters',
-      );
-      imgUrl = uploadRes.secure_url;
+
+      if (req.files['img'] && req.files['img'][0]) {
+        const uploadRes = await cloudinary.uploadStream(
+          req.files['img'][0].buffer,
+          'souldex/characters',
+        );
+        imgUrl = uploadRes.secure_url;
+      }
+
+      if (req.files['detailsImage'] && req.files['detailsImage'][0]) {
+        const uploadResDetails = await cloudinary.uploadStream(
+          req.files['detailsImage'][0].buffer,
+          'souldex/characters',
+        );
+        detailsImgUrl = uploadResDetails.secure_url;
+      }
     }
 
     // Parse organization
@@ -349,25 +427,32 @@ const createCharacter = async (req, res) => {
     let parsedAffiliation = safeJsonParse(affiliation, []);
 
     const character = new Character({
-      name,
-      romajiName: romajiName || name,
-      englishName,
-      japaneseName,
-      race: race || 'Unknown',
-      birthday,
-      age,
-      gender: gender || 'Unknown',
-      height,
-      weight,
+      name: sanitizeText(name),
+      romajiName: sanitizeText(romajiName) || sanitizeText(name),
+      englishName: sanitizeText(englishName),
+      japaneseName: sanitizeText(japaneseName),
+      race: sanitizeText(race) || 'Unknown',
+      birthday: sanitizeText(birthday),
+      age: sanitizeText(age),
+      gender: sanitizeText(gender) || 'Unknown',
+      height: sanitizeText(height),
+      weight: sanitizeText(weight),
+      occupation: sanitizeText(occupation),
       affiliation: parsedAffiliation,
       organization: parsedOrganization,
       spiritualPower: parsedSpiritualPower,
-      status: status || 'Unknown',
-      description,
+      status: sanitizeText(status) || 'Unknown',
+      description: sanitizeText(description),
       isOriginalCharacter: true,
       createdBy: req.user.email,
+      creatorId: req.user.userId,
       img: imgUrl,
+      detailsImage: detailsImgUrl,
     });
+
+    if (customSlug) {
+      character.slug = customSlug;
+    }
 
     await character.save();
     res.status(201).json({ success: true, character });
@@ -435,6 +520,7 @@ const updateCharacter = async (req, res) => {
     if (gender !== undefined) character.gender = gender;
     if (height !== undefined) character.height = height;
     if (weight !== undefined) character.weight = weight;
+    if (req.body.occupation !== undefined) character.occupation = req.body.occupation;
     if (status !== undefined) character.status = status;
     if (description !== undefined) character.description = description;
 
@@ -482,13 +568,24 @@ const updateCharacter = async (req, res) => {
       character.affiliation = safeJsonParse(affiliation, character.affiliation);
     }
 
-    if (req.file) {
+    if (req.files) {
       const cloudinary = require('../config/cloudinary');
-      const uploadRes = await cloudinary.uploadStream(
-        req.file.buffer,
-        'souldex/characters',
-      );
-      character.img = uploadRes.secure_url;
+
+      if (req.files['img'] && req.files['img'][0]) {
+        const uploadRes = await cloudinary.uploadStream(
+          req.files['img'][0].buffer,
+          'souldex/characters',
+        );
+        character.img = uploadRes.secure_url;
+      }
+
+      if (req.files['detailsImage'] && req.files['detailsImage'][0]) {
+        const uploadResDetails = await cloudinary.uploadStream(
+          req.files['detailsImage'][0].buffer,
+          'souldex/characters',
+        );
+        character.detailsImage = uploadResDetails.secure_url;
+      }
     }
 
     await character.save();
@@ -554,6 +651,7 @@ const deleteCharacter = async (req, res) => {
 module.exports = {
   getCharacters,
   getCharactersById,
+  getUserCharacters,
   likeCharacter,
   commentCharacter,
   createCharacter,

@@ -28,7 +28,9 @@ const errorHandler = (err, req, res, next) => {
     message = 'Duplicate value error';
   }
 
-  console.error(err);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(err);
+  }
   res.status(statusCode).json({ message });
 };
 

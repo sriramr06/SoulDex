@@ -15,7 +15,11 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
+      default: '',
+    },
+    imageUrl: {
+      type: String,
+      default: '',
     },
     read: {
       type: Boolean,
@@ -24,7 +28,19 @@ const messageSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+messageSchema.pre('validate', function(next) {
+  if (!this.text && !this.imageUrl) {
+    this.invalidate('text', 'Message must contain either text or an image.');
+  }
+  if (typeof next === 'function') next();
+});
+
+// Indexes for improved query performance
+messageSchema.index({ sender: 1, recipient: 1 });
+messageSchema.index({ recipient: 1 });
+messageSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

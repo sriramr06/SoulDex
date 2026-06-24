@@ -9,9 +9,11 @@ import {
   FiStar,
   FiArrowLeft,
   FiEdit2,
-  FiTrash2
+  FiTrash2,
 } from 'react-icons/fi';
 import useAppRoutes from '../hooks/useAppRoutes';
+import Navbar from '../components/Navbar';
+import CreateOCModal from '../components/character-wizard/CreateOCModal';
 import { useAuth } from '../hooks/useAuth';
 import './CharacterDetails.css';
 
@@ -23,41 +25,45 @@ const CharacterDetails = () => {
 
   const [character, setCharacter] = useState(null);
   const [newComment, setNewComment] = useState('');
-  const [commentError, setCommentError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCommentsDrawer, setShowCommentsDrawer] = useState(false);
 
   const userId = user?._id;
   const userEmail = user?.email;
-  const socket = useSocket();
+  const { socket } = useSocket() || {};
 
   // Fetch character details
   useEffect(() => {
-    const fetchCharacter = async () => {
+    let mounted = true;
+    const fetchChar = async () => {
       try {
-        setLoading(true);
-        const response = await api.get(`/api/characters/${id}`);
-        if (response.data.success) {
-          setCharacter(response.data.character);
-        } else {
-          setError(response.data.message || 'Character not found.');
+        const res = await api.get(`/api/characters/${id}`);
+        if (mounted) {
+          setCharacter(res.data.character);
+          setLoading(false);
         }
       } catch (err) {
-        console.error('Error fetching character details:', err);
-        setError('Character profile could not be loaded or was not found.');
-      } finally {
-        setLoading(false);
+        if (mounted) {
+          setError(
+            err.response?.data?.message || 'Failed to load spirit profile',
+          );
+          setLoading(false);
+        }
       }
     };
-
-    fetchCharacter();
+    fetchChar();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
-  // Real-time socket updates for this character
+  // Real-time updates listener
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || typeof socket.on !== 'function') return;
 
-    socket.on('characterUpdated', (updatedData) => {
+    const handleCharUpdated = (updatedData) => {
       if (updatedData.characterId === id) {
         setCharacter((prev) => {
           if (!prev) return prev;
@@ -68,20 +74,25 @@ const CharacterDetails = () => {
           };
         });
       }
-    });
+    };
 
-    socket.on('characterDeleted', (deletedData) => {
+    const handleCharDeleted = (deletedData) => {
       if (deletedData.characterId === id) {
         alert('This spirit profile has been removed from the registry.');
         goToCharacters();
       }
-    });
+    };
+
+    socket.on('characterUpdated', handleCharUpdated);
+    socket.on('characterDeleted', handleCharDeleted);
 
     return () => {
-      socket.off('characterUpdated');
-      socket.off('characterDeleted');
+      if (typeof socket.off === 'function') {
+        socket.off('characterUpdated', handleCharUpdated);
+        socket.off('characterDeleted', handleCharDeleted);
+      }
     };
-  }, [id, goToCharacters, socket]);
+  }, [socket, id, goToCharacters]);
 
   const handleLike = async () => {
     if (!userId || !character) return;
@@ -113,10 +124,10 @@ const CharacterDetails = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    setCommentError('');
+    setError('');
 
     if (!newComment.trim()) {
-      setCommentError('Comment message cannot be empty.');
+      setError('Comment message cannot be empty.');
       return;
     }
 
@@ -134,7 +145,7 @@ const CharacterDetails = () => {
       }
     } catch (err) {
       console.error('Failed to add comment', err);
-      setCommentError('Server error. Failed to add comment.');
+      setError('Server error. Failed to add comment.');
     }
   };
 
@@ -172,30 +183,73 @@ const CharacterDetails = () => {
     return 'Spiritual Powers';
   };
 
-  const hasSpecialAbilities = (sp) => {
+  const getNormalizedPowers = (char) => {
+    if (!char) return null;
+    
+    let sp = char.spiritualPower ? { ...char.spiritualPower } : {};
+    
+    if (typeof char.spiritualPower === 'string') {
+      return char.spiritualPower;
+    }
+
+    if (char.zanpakuto) {
+      sp.zanpakutoName = sp.zanpakutoName || char.zanpakuto.name;
+      sp.releaseCommand = sp.releaseCommand || char.zanpakuto.releaseCommand;
+      
+      const shikaiRaw = char.zanpakuto.shikai;
+      if (shikaiRaw && shikaiRaw.length > 0) sp.shikai = sp.shikai || (Array.isArray(shikaiRaw) ? shikaiRaw.join('\\n') : shikaiRaw);
+      
+      const bankaiRaw = char.zanpakuto.bankai;
+      if (bankaiRaw && bankaiRaw.length > 0) sp.bankai = sp.bankai || (Array.isArray(bankaiRaw) ? bankaiRaw.join('\\n') : bankaiRaw);
+    }
+    
+    if (char.resurrection) {
+      sp.resurreccionName = sp.resurreccionName || char.resurrection.name;
+      sp.releaseCommand = sp.releaseCommand || char.resurrection.releaseCommand;
+      sp.segundaEtapa = sp.segundaEtapa || char.resurrection.segundaEtapa;
+    }
+
+    if (char.spirit_weapon) sp.spiritWeapon = sp.spiritWeapon || char.spirit_weapon;
+    if (char.vollstandig) sp.vollstandig = sp.vollstandig || char.vollstandig;
+    if (char.ability) sp.abilityDetail = sp.abilityDetail || char.ability;
+
+    return sp;
+  };
+
+  const hasSpecialAbilities = (char) => {
+    const sp = getNormalizedPowers(char);
     if (!sp) return false;
     if (typeof sp === 'string' && sp.trim() !== '') return true;
     if (typeof sp === 'object') {
       return Object.entries(sp).some(
-        ([key, val]) => key !== 'powerType' && val && String(val).trim() !== '',
+        ([key, val]) => key !== 'powerType' && val && String(val).trim() !== '' && (!Array.isArray(val) || val.length > 0),
       );
     }
     return false;
   };
 
-  const renderZanpakuto = (sp) => {
+  const renderZanpakuto = (char) => {
+    const sp = getNormalizedPowers(char);
     if (!sp) return null;
     if (typeof sp === 'string') return <div className="desc-text">{sp}</div>;
 
     if (typeof sp === 'object') {
-      const lowerRace = character?.race?.toLowerCase();
+      const lowerRace = char?.race?.toLowerCase() || '';
 
       const renderField = (label, value) => {
-        if (!value) return null;
+        if (!value || (Array.isArray(value) && value.length === 0)) return null;
+        
+        let displayVal = value;
+        if (Array.isArray(value)) {
+          displayVal = value.join(', ');
+        } else if (typeof value === 'string' && value.includes('\\n')) {
+          displayVal = value.split('\\n').map((line, i) => <div key={i}>{line}</div>);
+        }
+
         return (
           <div className="kv-row" key={label}>
             <span className="kv-label">{label}</span>
-            <span className="kv-value">{value}</span>
+            <span className="kv-value">{displayVal}</span>
           </div>
         );
       };
@@ -207,6 +261,8 @@ const CharacterDetails = () => {
             {renderField('Release Command', sp.releaseCommand)}
             {renderField('Shikai Form', sp.shikai)}
             {renderField('Bankai Form', sp.bankai)}
+            {renderField('Hollow Mask', sp.hollowMask)}
+            {renderField('Abilities', sp.abilityDetail)}
           </>
         );
       }
@@ -216,6 +272,7 @@ const CharacterDetails = () => {
             {renderField('Spirit Weapon', sp.spiritWeapon)}
             {renderField('Schrift', sp.schrift)}
             {renderField('Vollständig', sp.vollstandig)}
+            {renderField('Abilities', sp.abilityDetail)}
           </>
         );
       }
@@ -230,6 +287,7 @@ const CharacterDetails = () => {
             {renderField('Release Command', sp.releaseCommand)}
             {renderField('Segunda Etapa', sp.segundaEtapa)}
             {renderField('Aspect of Death', sp.aspectOfDeath)}
+            {renderField('Abilities', sp.abilityDetail)}
           </>
         );
       }
@@ -250,20 +308,19 @@ const CharacterDetails = () => {
             {renderField('Shikai', sp.shikai)}
             {renderField('Bankai', sp.bankai)}
             {renderField('Hollow Mask', sp.hollowMask)}
+            {renderField('Abilities', sp.abilityDetail)}
           </>
         );
       }
-      
-      // Fallback
+
       const filtered = Object.entries(sp).filter(
         ([k, v]) => k !== 'powerType' && v && String(v).trim() !== '',
       );
       if (filtered.length === 0) return null;
-      return (
-        <>
-          {filtered.map(([key, val]) => renderField(key, val))}
-        </>
-      );
+      
+      const formatKey = (key) => key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      
+      return <>{filtered.map(([key, val]) => renderField(formatKey(key), val))}</>;
     }
     return null;
   };
@@ -296,181 +353,246 @@ const CharacterDetails = () => {
     );
   }
 
-  const isLiked = character.likes?.includes(userId);
+  const isLiked = character.likes?.some(id => String(id) === String(userId));
   const isFavorited = user?.favorites?.some((fav) =>
     typeof fav === 'string' ? fav === character._id : fav._id === character._id,
   );
   const isOwner = character.createdBy === userEmail || user?.role === 'admin';
 
   return (
-    <div className="details-page-wrapper">
-      <div className="details-bg-glow"></div>
-
-      <div className="top-actions-bar">
-        <div>
-          <button className="action-btn" onClick={goToCharacters}>
-            <FiArrowLeft /> Archives
-          </button>
+    <div>
+      <Navbar />
+      <div className="details-page-wrapper">
+        <div className="top-actions-bar">
+          <div>
+            <button className="action-btn" onClick={goToCharacters}>
+              <FiArrowLeft /> Archives
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              className={`action-btn`}
+              onClick={() => setShowCommentsDrawer(true)}
+            >
+              <FiMessageSquare /> {character.comments?.length || 0}
+            </button>
+            <button
+              className={`action-btn ${isLiked ? 'active-like' : ''}`}
+              onClick={handleLike}
+            >
+              <FiHeart /> {character.likes?.length || 0}
+            </button>
+            <button
+              className={`action-btn ${isFavorited ? 'active-fav' : ''}`}
+              onClick={handleFavoriteToggle}
+            >
+              <FiStar />
+            </button>
+            {isOwner && (
+              <>
+                <button className="action-btn" onClick={() => setShowEditModal(true)}>
+                  <FiEdit2 /> Edit
+                </button>
+                <button className="action-btn danger" onClick={handleDelete}>
+                  <FiTrash2 /> Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button 
-            className={`action-btn ${isLiked ? 'active-like' : ''}`} 
-            onClick={handleLike}
-          >
-            <FiHeart /> {character.likes?.length || 0}
-          </button>
-          <button 
-            className={`action-btn ${isFavorited ? 'active-fav' : ''}`} 
-            onClick={handleFavoriteToggle}
-          >
-            <FiStar />
-          </button>
-          {isOwner && (
-            <>
-              <button className="action-btn" onClick={() => navigate(`/characters/${character._id}/edit`)}>
-                <FiEdit2 /> Edit
-              </button>
-              <button className="action-btn danger" onClick={handleDelete}>
-                <FiTrash2 /> Delete
-              </button>
-            </>
-          )}
-        </div>
-      </div>
 
-      <main className="details-main-layout">
-        
-        {/* LEFT COLUMN */}
-        <section className="side-col left-col">
-          <div className="glass-panel identity-panel">
-            <div className="panel-header">Identity</div>
-            <h1>{character.name}</h1>
-            {character.romajiName && character.romajiName.toLowerCase() !== character.name.toLowerCase() && (
-              <p className="subtitle">{character.romajiName}</p>
-            )}
-            {character.englishName && character.englishName.toLowerCase() !== character.name.toLowerCase() && (
-              <p className="subtitle">{character.englishName}</p>
-            )}
-            {character.japaneseName && character.japaneseName !== character.name && (
-              <p className="japanese-name">{character.japaneseName}</p>
-            )}
-            
-            <div className="badge-row">
-              <span className="premium-badge">{character.race || 'Unknown'}</span>
+        <main className="details-main-layout">
+          {/* LEFT COLUMN */}
+          <section className="side-col left-col">
+            <div className="glass-panel identity-panel">
+              <div className="panel-header">Identity</div>
+              <h1>{character.name}</h1>
+              {character.romajiName &&
+                character.romajiName.toLowerCase() !==
+                  character.name.toLowerCase() && (
+                  <p className="subtitle">{character.romajiName}</p>
+                )}
+              {character.englishName &&
+                character.englishName.toLowerCase() !==
+                  character.name.toLowerCase() && (
+                  <p className="subtitle">{character.englishName}</p>
+                )}
+              {character.japaneseName &&
+                character.japaneseName !== character.name && (
+                  <p className="japanese-name">{character.japaneseName}</p>
+                )}
+
+              <div className="badge-row">
+                <span className="premium-badge">
+                  {character.race || 'Unknown'}
+                </span>
+                {character.organization?.group && (
+                  <span className="premium-badge">
+                    {character.organization.group}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="glass-panel meta-panel">
+              <div className="panel-header">Affiliations</div>
+              {renderAffiliations(character.affiliation) !== 'None' &&
+                renderAffiliations(character.affiliation) !==
+                  character.organization?.group && (
+                  <div className="kv-row">
+                    <span className="kv-label">Affiliation</span>
+                    <span className="kv-value">
+                      {renderAffiliations(character.affiliation)}
+                    </span>
+                  </div>
+                )}
               {character.organization?.group && (
-                <span className="premium-badge">{character.organization.group}</span>
+                <div className="kv-row">
+                  <span className="kv-label">Organization</span>
+                  <span className="kv-value">
+                    {character.organization.group}
+                  </span>
+                </div>
               )}
-            </div>
-          </div>
-
-          <div className="glass-panel meta-panel">
-            <div className="panel-header">Affiliations</div>
-            {renderAffiliations(character.affiliation) !== 'None' && 
-             renderAffiliations(character.affiliation) !== character.organization?.group && (
-              <div className="kv-row">
-                <span className="kv-label">Affiliation</span>
-                <span className="kv-value">{renderAffiliations(character.affiliation)}</span>
-              </div>
-            )}
-            {character.organization?.group && (
-              <div className="kv-row">
-                <span className="kv-label">Organization</span>
-                <span className="kv-value">{character.organization.group}</span>
-              </div>
-            )}
-            <div className="kv-row">
-              <span className="kv-label">Rank</span>
-              <span className="kv-value">
-                {character.organization?.division
-                  ? `${character.organization.division} — ${character.organization?.rank || ''}`
-                  : character.organization?.rank || 'None'}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass-panel desc-panel">
-            <div className="panel-header">Biography</div>
-            <div className="desc-text">
-              {character.description || 'No biography files retrieved from the Soul Society archives.'}
-            </div>
-          </div>
-        </section>
-
-        {/* CENTER HERO */}
-        <section className="character-hero-col">
-          <img
-            src={character.detailsImage || character.img}
-            alt={character.name}
-            className="character-hero-image"
-          />
-        </section>
-
-        {/* RIGHT COLUMN */}
-        <section className="side-col right-col">
-          <div className="glass-panel stats-panel">
-            <div className="panel-header">Physical Stats</div>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-label">Gender</span>
-                <span className="stat-val">{character.gender || 'Unknown'}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Age</span>
-                <span className="stat-val">{character.age || 'Unknown'}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Height</span>
-                <span className="stat-val">{character.height || 'Unknown'}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Weight</span>
-                <span className="stat-val">{character.weight || 'Unknown'}</span>
-              </div>
-            </div>
-          </div>
-
-          {hasSpecialAbilities(character.spiritualPower) && (
-            <div className="glass-panel powers-panel">
-              <div className="panel-header">{getAbilitySectionTitle(character.race)}</div>
-              {renderZanpakuto(character.spiritualPower)}
-            </div>
-          )}
-
-          <div className="glass-panel comments-panel">
-            <div className="panel-header">Transmissions</div>
-            <div className="comments-container">
-              {character.comments?.length === 0 ? (
-                <div className="empty-state">
-                  <FiMessageSquare size={24} style={{ marginBottom: '8px' }} />
-                  <div>No transmissions yet.</div>
+              {character.race === 'Human' ? (
+                <div className="kv-row">
+                  <span className="kv-label">Occupation</span>
+                  <span className="kv-value">
+                    {character.occupation || 'None'}
+                  </span>
                 </div>
               ) : (
-                [...character.comments].reverse().map((c, i) => (
-                  <div key={i} className="comment-bubble">
-                    <div className="comment-meta">
-                      <strong>{c.userEmail.split('@')[0]}</strong>
-                      <span>{new Date(c.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="comment-text">{c.text}</div>
-                  </div>
-                ))
+                <div className="kv-row">
+                  <span className="kv-label">Rank</span>
+                  <span className="kv-value">
+                    {character.organization?.division
+                      ? `${character.organization.division} — ${character.organization?.rank || ''}`
+                      : character.organization?.rank || 'None'}
+                  </span>
+                </div>
               )}
             </div>
-            <form onSubmit={handleCommentSubmit} className="comment-input-row">
-              <input
-                type="text"
-                placeholder="Send a message..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <button type="submit">
-                <FiSend />
-              </button>
-            </form>
-          </div>
-        </section>
 
-      </main>
+            <div className="glass-panel desc-panel">
+              <div className="panel-header">Biography</div>
+              <div className="desc-text">
+                {character.description ||
+                  'No biography files retrieved from the Soul Society archives.'}
+              </div>
+            </div>
+          </section>
+
+          {/* CENTER HERO */}
+          <section className="character-hero-col">
+            <img
+              src={character.detailsImage || character.img}
+              alt={character.name}
+              className="character-hero-image"
+            />
+          </section>
+
+          {/* RIGHT COLUMN */}
+          <section className="side-col right-col">
+            <div className="glass-panel stats-panel">
+              <div className="panel-header">Physical Stats</div>
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <span className="stat-label">Gender</span>
+                  <span className="stat-val">
+                    {character.gender || 'Unknown'}
+                  </span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Age</span>
+                  <span className="stat-val">{character.age || 'Unknown'}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Height</span>
+                  <span className="stat-val">
+                    {character.height || 'Unknown'}
+                  </span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Weight</span>
+                  <span className="stat-val">
+                    {character.weight || 'Unknown'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {hasSpecialAbilities(character) && (
+              <div className="glass-panel powers-panel">
+                <div className="panel-header">
+                  {getAbilitySectionTitle(character.race)}
+                </div>
+                {renderZanpakuto(character)}
+              </div>
+            )}
+
+
+          </section>
+        </main>
+      </div>
+
+      {showEditModal && (
+        <CreateOCModal 
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            // Quick way to reload the updated data without hard page reload
+            api.get(`/api/characters/${id}`).then(res => {
+              if (res.data.success) setCharacter(res.data.character);
+            });
+          }}
+          existingCharacter={character}
+        />
+      )}
+
+      {/* Comments Right Drawer */}
+      <div 
+        className={`comments-drawer-overlay ${showCommentsDrawer ? 'open' : ''}`} 
+        onClick={() => setShowCommentsDrawer(false)}
+      />
+      <div className={`comments-drawer ${showCommentsDrawer ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <h3>Transmissions ({character.comments?.length || 0})</h3>
+          <button className="close-drawer-btn" onClick={() => setShowCommentsDrawer(false)}>✕</button>
+        </div>
+        <div className="drawer-body">
+          <div className="comments-container">
+            {character.comments?.length === 0 ? (
+              <div className="empty-state">
+                <FiMessageSquare size={24} style={{ marginBottom: '8px' }} />
+                <div>No transmissions yet.</div>
+              </div>
+            ) : (
+              [...character.comments].reverse().map((c, i) => (
+                <div key={i} className="comment-bubble">
+                  <div className="comment-meta">
+                    <strong>{c.userEmail.split('@')[0]}</strong>
+                    <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="comment-text">{c.text}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <div className="drawer-footer">
+          <form onSubmit={handleCommentSubmit} className="comment-input-row">
+            <input
+              type="text"
+              placeholder="Send a message..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button type="submit">
+              <FiSend />
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

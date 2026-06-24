@@ -1,6 +1,7 @@
 .pageContainer {
-  padding: 0 3rem 4rem 3rem;
-  max-width: 1600px;
+  padding: 0 2rem 4rem 2rem;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -8,34 +9,97 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background-color: #F4F5F7;
-  display: flex;
+  background-color: var(--bg-elevated);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  margin-top: 0;
+  gap: 1rem;
+  margin: 0 -2rem 2rem -2rem;
+  width: calc(100% + 4rem);
   border-bottom: 1px solid var(--border-color);
-  padding: 1rem 0 1.5rem 0;
+  padding: 1rem 2rem 1.5rem 2rem;
+  box-sizing: border-box;
 }
 
 .titleAndFilters {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.2rem;
   flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
 }
-
-
 
 .filterButtons {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.searchAndCreate {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-self: end;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-tertiary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  min-width: 240px;
+  max-width: 380px;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.clearSearchBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.2s;
+  margin-left: 0.5rem;
+}
+
+.clearSearchBtn:hover {
+  color: var(--text-primary);
+}
+
+
+.createBtn {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.createBtn:hover {
+  background-color: var(--accent-primary-hover);
+  transform: translateY(-1px);
 }
 
 .filterBtn {
-  background-color: #E9ECEF;
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   border: none;
   padding: 0.5rem 1rem;
@@ -47,30 +111,26 @@
 }
 
 .filterBtn:hover, .filterBtn:focus {
-  background-color: #0066CC;
-  color: #FFFFFF;
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
   outline: none;
 }
 
 .filterBtn.active {
-  background-color: #0066CC;
-  color: #FFFFFF;
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
-.searchWrapper {
-  display: flex;
-  align-items: center;
-  background-color: #FFFFFF;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  min-width: 280px;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+.filterBtn.active:hover,
+.filterBtn.active:focus {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  outline: none;
 }
 
 .searchWrapper:focus-within {
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(60, 110, 143, 0.12);
 }
 
 .searchIcon {
@@ -106,18 +166,14 @@
 @media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 600px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 500px) {
-  .grid {
-    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 
@@ -131,7 +187,137 @@
 .error {
   text-align: center;
   padding: 2rem;
-  color: #DC2626;
-  background: #FEE2E2;
+  color: var(--status-error);
+  background: rgba(239,68,68,0.08);
   border-radius: 4px;
+}
+
+.resultInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.resultSummary {
+  padding: 0.5rem 0 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.skeletonCard {
+  height: 220px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--bg-tertiary), var(--bg-elevated));
+  box-shadow: 0 6px 14px rgba(4,16,34,0.12);
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.9; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.9; }
+}
+
+.cardWrapper {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: block;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-4px);
+}
+
+.cardWrapper:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+}
+
+.loadMoreWrap {
+  display:flex;
+  justify-content:center;
+  margin-top:1.5rem;
+}
+
+.loadMoreBtn {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.loadMoreBtn:hover { background: var(--accent-primary-hover); }
+
+/* Mobile and Tablet specific styles */
+.filterSelect {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.filterSelect:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(201, 42, 42, 0.12); /* using crimson red accent */
+}
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .desktopOnly {
+    display: none !important;
+  }
+
+  .mobileOnly {
+    display: block;
+  }
+
+  .headerRow {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .searchAndCreate {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .mobileFilterDropdown {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .searchWrapper {
+    flex: 2;
+    min-width: 160px;
+    max-width: none;
+  }
+
+  .createBtn {
+    width: 100%;
+    margin-top: 0.2rem;
+  }
 }

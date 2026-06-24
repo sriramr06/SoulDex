@@ -1,26 +1,117 @@
 :root {
-  /* Colors */
-  --bg-dark: #F8F9FA; /* Using this as the main light background */
-  --surface-card: #FFFFFF;
-  --surface-elevated: #E9ECEF;
-  --neutral-gray: #6C757D;
-  --primary-blue: #0066CC;
-  --primary-blue-dark: #004C99;
-  --bg-light: #FFFFFF;
+  /* Ink & Washi Theme (Dark Mode) */
+  --bg-primary: #0F0F11; /* Ink Black */
+  --bg-secondary: #1A1A1E; /* Charcoal Surface */
+  --bg-tertiary: #222226; /* Panels */
+  --bg-elevated: #1A1A1E; /* Elevated cards */
 
-  --bg-card: var(--surface-card);
-  --bg-input: #FFFFFF;
-  --primary-orange: #1A1A1A; /* Using dark color for primary accents like buttons based on design */
-  --primary-orange-hover: #333333;
-  --secondary-cyan: #0066CC;
-  --text-primary: #1A1A1A;
-  --text-secondary: #6C757D;
-  --border-color: #DEE2E6;
+  /* Text hierarchy */
+  --text-primary: #F3F4F6;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  --text-disabled: #52525B;
+
+  /* Accents */
+  --accent-primary: #C92A2A; /* Crimson Red */
+  --accent-secondary: #A1A1AA;
+  --accent-muted: #71717A;
+
+  /* Status colors */
+  --status-success: #2E8B57;
+  --status-warning: #D97706;
+  --status-error: #DC2626;
+  --status-info: #2563EB;
+
+  /* Badge-specific colors */
+  --badge-quincy: #2563EB;
+  --badge-hollow: #DC2626;
+  --badge-shinigami: #D97706;
+  --badge-fullbringer: #059669;
+  --badge-visored: #7C3AED;
+  --badge-human: #D97706;
+
+  /* Borders & dividers */
+  --border-light: #27272A;
+  --border-medium: #3F3F46;
+  --border-heavy: #52525B;
+
+  /* Flat Backgrounds (Replacing Glassmorphism) */
+  --glass-panel-bg: #1A1A1E;
+  --comment-bubble-bg: #222226;
+  --input-bg: #0F0F11;
+
+  /* Legacy aliases for compatibility */
+  --bg-dark: var(--bg-primary);
+  --surface-card: var(--bg-elevated);
+  --surface-elevated: var(--bg-elevated);
+  --bg-card: var(--bg-elevated);
+  --primary-blue: var(--accent-primary);
+  --primary-blue-dark: #991B1B;
+  --primary-orange: var(--accent-primary);
+  --primary-orange-hover: #991B1B;
+  --accent-primary-hover: #991B1B;
+  --border-color: var(--border-medium);
 
   /* Typography */
   --font-headline: 'Montserrat', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-label: 'JetBrains Mono', monospace;
+}
+
+/* Light Theme */
+html.light-theme {
+  /* Ink & Washi Theme (Light Mode) */
+  --bg-primary: #F9F9F8; /* Washi Off-White */
+  --bg-secondary: #EAEAEA; /* Light Ash Surface */
+  --bg-tertiary: #D4D4D8; /* Panels */
+  --bg-elevated: #FFFFFF; /* Elevated cards */
+
+  /* Text hierarchy */
+  --text-primary: #111111;
+  --text-secondary: #52525B;
+  --text-tertiary: #71717A;
+  --text-disabled: #A1A1AA;
+
+  /* Accents */
+  --accent-primary: #D32F2F; /* Crimson Red */
+  --accent-secondary: #52525B;
+  --accent-muted: #71717A;
+
+  /* Status colors */
+  --status-success: #15803D;
+  --status-warning: #B45309;
+  --status-error: #B91C1C;
+  --status-info: #1D4ED8;
+
+  /* Badge-specific colors */
+  --badge-quincy: #2563EB;
+  --badge-hollow: #DC2626;
+  --badge-shinigami: #D97706;
+  --badge-fullbringer: #059669;
+  --badge-visored: #7C3AED;
+  --badge-human: #D97706;
+
+  /* Borders & dividers */
+  --border-light: #E4E4E7;
+  --border-medium: #D4D4D8;
+  --border-heavy: #A1A1AA;
+
+  /* Flat Backgrounds (Replacing Glassmorphism) */
+  --glass-panel-bg: #FFFFFF;
+  --comment-bubble-bg: #F4F4F5;
+  --input-bg: #FFFFFF;
+
+  /* Legacy aliases for compatibility */
+  --bg-dark: var(--bg-primary);
+  --surface-card: var(--bg-elevated);
+  --surface-elevated: var(--bg-elevated);
+  --bg-card: var(--bg-elevated);
+  --primary-blue: var(--accent-primary);
+  --primary-blue-dark: #991B1B;
+  --primary-orange: var(--accent-primary);
+  --primary-orange-hover: #991B1B;
+  --accent-primary-hover: #991B1B;
+  --border-color: var(--border-medium);
 }
 
 * {
@@ -30,14 +121,19 @@
 }
 
 body {
-  background-color: var(--bg-dark);
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-headline);
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -47,18 +143,41 @@ h1, h2, h3, h4, h5, h6 {
 button {
   font-family: var(--font-headline);
   cursor: pointer;
-  border: none;
+  border: 1px solid var(--border-light);
+  border-radius: 2px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.85rem 1.2rem;
   transition: all 0.2s ease;
+}
+button:hover:not(:disabled) {
+  background-color: var(--bg-elevated);
+}
+button:disabled {
+  background-color: var(--border-color);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.souldex-force-primary {
+  background-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  border: none !important;
+}
+
+.souldex-force-primary:hover {
+  background-color: var(--accent-primary-hover) !important;
+  color: var(--text-primary) !important;
 }
 
 a {
-  color: var(--primary-orange);
+  color: var(--accent-primary);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--primary-orange-hover);
+  color: var(--accent-primary-hover);
 }
 
 /* Custom Scrollbar for a sleek look */
@@ -67,14 +186,14 @@ a:hover {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-dark); 
+  background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color); 
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary); 
+  background: var(--text-secondary);
 }

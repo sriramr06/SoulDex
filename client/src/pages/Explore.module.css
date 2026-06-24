@@ -1,0 +1,100 @@
+/* Explore page — inherits from Social styles, search + header */
+.pageContainer {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.85rem 0;
+}
+
+.pageTitle {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-tertiary);
+  border-radius: 2rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--border-light);
+  width: 260px;
+}
+
+.searchIcon {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  outline: none;
+}
+.searchInput::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+.contentArea {
+  min-height: 500px;
+}
+
+@media (max-width: 800px) {
+  .pageContainer {
+    padding: 0 1rem 2rem 1rem;
+  }
+  .pageTitle {
+    font-size: 1.4rem;
+  }
+  .searchBar {
+    width: 220px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding-bottom: 1rem;
+  }
+  
+  .pageTitle {
+    font-size: 1.3rem;
+  }
+  
+  .headerRight {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  
+  .searchBar {
+    flex: 1;
+    width: auto;
+  }
+}
