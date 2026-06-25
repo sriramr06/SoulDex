@@ -11,7 +11,7 @@ import { showToast } from '../utils/toastService';
 export const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV
-    ? 'https://souldex.onrender.com'
+    ? 'https://souldex.onrender.com/api'
     : typeof window !== 'undefined'
       ? window.location.origin
       : '');
