@@ -39,12 +39,11 @@ if (process.env.NODE_ENV === 'production') {
   }
 
   if (prodRequired.length) {
-    console.error('Missing required production environment variables:');
-    prodRequired.forEach((v) => console.error(` - ${v}`));
-    console.error(
-      'Aborting startup. Set the above variables in your production environment.',
+    console.warn('⚠️ WARNING: Missing recommended production environment variables:');
+    prodRequired.forEach((v) => console.warn(` - ${v}`));
+    console.warn(
+      'The server will start, but features relying on these variables (like Email Sending or Image Uploads) will fail if used.',
     );
-    process.exit(1);
   }
 }
 

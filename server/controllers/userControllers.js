@@ -46,11 +46,10 @@ const registerUser = async (req, res) => {
     });
 
     // Dev auto-verify is now opt-in via DEV_AUTO_VERIFY=true in .env
-    // This prevents accidentally enabling auto verification in non-dev environments.
+    // Enabled in production as well for easy portfolio deployments without email setup.
     if (
-      process.env.NODE_ENV !== 'production' &&
-      (process.env.DEV_AUTO_VERIFY === 'true' ||
-        process.env.DEV_AUTO_VERIFY === '1')
+      process.env.DEV_AUTO_VERIFY === 'true' ||
+      process.env.DEV_AUTO_VERIFY === '1'
     ) {
       newUser.isEmailVerified = true;
       newUser.emailVerificationToken = null;

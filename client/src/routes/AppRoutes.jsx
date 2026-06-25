@@ -13,6 +13,7 @@ import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import VerifyEmail from '../pages/VerifyEmail';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
+import NotFound from '../pages/NotFound';
 
 export const router = createBrowserRouter([
   {
@@ -99,5 +100,9 @@ export const router = createBrowserRouter([
         <Creations />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: '*',
+    element: <NotFound />,
   },
 ]);
