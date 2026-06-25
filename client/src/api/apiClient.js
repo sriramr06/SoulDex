@@ -8,13 +8,7 @@ import {
 } from './tokenStorage';
 import { showToast } from '../utils/toastService';
 
-export const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? 'https://souldex.onrender.com/api'
-    : typeof window !== 'undefined'
-      ? window.location.origin
-      : '');
+export const API_URL = import.meta.env.VITE_API_URL || 'https://souldex.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -5,9 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export const SocketContext = createContext({ socket: null, onlineUsers: new Set(), typingUsers: {}, totalUnread: 0 });
 
-const SOCKET_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'https://souldex.onrender.com/api' : '');
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'https://souldex.onrender.com';
 
 // Request browser notification permission once
 const requestNotificationPermission = async () => {
