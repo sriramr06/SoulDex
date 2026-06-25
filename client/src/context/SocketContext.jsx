@@ -7,7 +7,7 @@ export const SocketContext = createContext({ socket: null, onlineUsers: new Set(
 
 const SOCKET_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:3000' : '');
+  (import.meta.env.DEV ? 'https://souldex.onrender.com' : '');
 
 // Request browser notification permission once
 const requestNotificationPermission = async () => {
