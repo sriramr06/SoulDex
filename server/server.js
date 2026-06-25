@@ -201,23 +201,17 @@ const startServer = async () => {
 };
 
 startServer().catch((error) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Server failed to start:', error);
-  }
+  console.error('Server failed to start:', error);
   process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Uncaught exception:', error);
-  }
+  console.error('Uncaught exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (error) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Unhandled promise rejection:', error);
-  }
+  console.error('Unhandled promise rejection:', error);
   if (serverInstance) {
     serverInstance.close(() => process.exit(1));
   } else {
