@@ -514,7 +514,7 @@ const updateUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { displayName, bio, username, race } = req.body;
+    const { displayName, bio, username, race, email, isPrivate } = req.body;
     if (displayName !== undefined) user.displayName = sanitizeText(displayName);
     if (bio !== undefined) user.bio = sanitizeText(bio);
     if (username !== undefined) {
@@ -525,6 +525,17 @@ const updateUserProfile = async (req, res) => {
       user.username = trimmedUsername;
     }
     if (race !== undefined) user.race = sanitizeText(race);
+    if (email !== undefined) {
+      const { sanitizeEmail } = require('../utils/sanitizer');
+      const cleanEmail = sanitizeEmail(email);
+      if (!cleanEmail) {
+        return res.status(400).json({ message: 'Email cannot be empty or invalid.' });
+      }
+      user.email = cleanEmail;
+    }
+    if (isPrivate !== undefined) {
+      user.isPrivate = isPrivate === 'true' || isPrivate === true;
+    }
 
     const cloudinary = require('../config/cloudinary');
     if (req.file) {
@@ -737,6 +748,72 @@ const toggleFollow = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new password are required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect.' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    // Invalidate all other sessions
+    user.refreshTokens = [];
+    await user.save();
+
+    res.json({ message: 'Password changed successfully. Please log in again on other devices.' });
+  } catch (error) {
+    console.error('changePassword error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+const deleteAccount = async (req, res) => {
+  const { password } = req.body;
+  try {
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required to delete your account.' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password.' });
+    }
+
+    const Post = require('../models/Post');
+    const Message = require('../models/Message');
+    const Notification = require('../models/Notification');
+
+    await Post.deleteMany({ author: user._id });
+    await Message.deleteMany({ $or: [{ sender: user._id }, { recipient: user._id }] });
+    await Notification.deleteMany({ $or: [{ recipient: user._id }, { sender: user._id }] });
+
+    // Remove from other users' followers/following lists
+    await User.updateMany(
+      { $or: [{ followers: user._id }, { following: user._id }] },
+      { $pull: { followers: user._id, following: user._id } },
+    );
+
+    await User.findByIdAndDelete(user._id);
+
+    res.json({ message: 'Account deleted successfully.' });
+  } catch (error) {
+    console.error('deleteAccount error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -752,4 +829,6 @@ module.exports = {
   toggleFavorite,
   searchUsers,
   toggleFollow,
+  changePassword,
+  deleteAccount,
 };

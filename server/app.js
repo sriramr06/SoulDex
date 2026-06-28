@@ -77,6 +77,11 @@ app.get('/', (req, res) => {
 const userRoutes = require('./routes/userRoutes');
 app.use('/api', userRoutes);
 
+// Health check — used by UptimeRobot to keep the server warm
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const characterRoutes = require('./routes/characterRoutes');
 app.use('/api/characters', characterRoutes);
 

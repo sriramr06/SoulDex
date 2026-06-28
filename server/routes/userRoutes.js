@@ -16,6 +16,8 @@ const {
   toggleFavorite,
   searchUsers,
   toggleFollow,
+  changePassword,
+  deleteAccount,
 } = require('../controllers/userControllers');
 const { protect } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
@@ -90,6 +92,10 @@ router.post(
 router.get('/search', protect, searchUsers);
 router.get('/user/:userId', protect, validateUserId, getPublicProfile);
 router.post('/follow/:id', protect, toggleFollow);
+
+// Settings (Protected)
+router.put('/settings/password', protect, changePassword);
+router.delete('/settings/account', protect, deleteAccount);
 
 module.exports = router;
 

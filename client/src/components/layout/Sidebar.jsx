@@ -106,6 +106,8 @@ const Sidebar = ({ isOpen, onClose }) => {
           <span>Profile</span>
         </NavLink>
 
+
+
         <button
           onClick={handleLogout}
           className={`${styles.navItem} ${styles.logoutBtn}`}

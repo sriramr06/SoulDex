@@ -69,3 +69,11 @@ export const updateUserProfile = (formData) => {
 export const logout = (refreshToken) => {
   return api.post('/api/logout', { refreshToken });
 };
+
+export const changePassword = (currentPassword, newPassword) => {
+  return api.put('/api/settings/password', { currentPassword, newPassword });
+};
+
+export const deleteAccount = (password) => {
+  return api.delete('/api/settings/account', { data: { password } });
+};

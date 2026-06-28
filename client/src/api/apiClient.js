@@ -12,7 +12,7 @@ export const API_URL = import.meta.env.VITE_API_URL || 'https://souldex.onrender
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: 60000, // 60s to survive Render cold starts
 });
 
 // Attach auth token automatically when present

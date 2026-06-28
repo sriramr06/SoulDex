@@ -1,5 +1,5 @@
 import styles from './Topbar.module.css';
-import { FiMenu, FiMessageSquare } from 'react-icons/fi';
+import { FiMenu, FiMessageSquare, FiSettings } from 'react-icons/fi';
 import ThemeToggle from '../ui/ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
 import NotificationsDropdown from '../NotificationsDropdown';
@@ -47,6 +47,14 @@ const Topbar = ({ onToggleSidebar }) => {
               </span>
             )}
           </div>
+        </button>
+        <button
+          type="button"
+          className={styles.iconBtn}
+          onClick={() => navigate('/settings')}
+          aria-label="Settings"
+        >
+          <FiSettings />
         </button>
         <div className={styles.desktopThemeToggle}>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
